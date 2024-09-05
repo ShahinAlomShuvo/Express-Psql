@@ -1,0 +1,24 @@
+{
+  "name": "express-psql",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "ts-node-dev": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^4.17.21",
+    "@types/pg": "^8.11.8",
+    "typescript": "^5.5.4"
+  }
+}
