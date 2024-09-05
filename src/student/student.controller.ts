@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
 import { studentService } from "./student.service";
 import pool from "../server";
-import bcrypt from "bcrypt";
-import config from "../config";
 const createStudent = async (req: Request, res: Response) => {
   try {
     const {
@@ -19,7 +17,7 @@ const createStudent = async (req: Request, res: Response) => {
       gender,
     } = req.body;
 
-    const isExists = await pool.query(studentService.isExists, [email]);
+    const isExists = await studentService.isExists(email);
     if (isExists.rows.length > 0) {
       return res.status(400).json({
         status: "error",
@@ -27,12 +25,7 @@ const createStudent = async (req: Request, res: Response) => {
       });
     }
 
-    const hashPassword = await bcrypt.hash(
-      password,
-      Number(config.SALT_ROUNDS)
-    );
-
-    const result = await pool.query(studentService.createStudent, [
+    const result = await studentService.createStudent(
       name,
       email,
       dob,
@@ -41,10 +34,10 @@ const createStudent = async (req: Request, res: Response) => {
       presentAddress,
       permanentAddress,
       age,
-      hashPassword,
+      password,
       isDeleted,
-      gender,
-    ]);
+      gender
+    );
 
     // Exclude the password from the result
     const { password: _, ...data } = result.rows[0];
@@ -65,7 +58,7 @@ const createStudent = async (req: Request, res: Response) => {
 
 const getAllStudents = async (req: Request, res: Response) => {
   try {
-    const result = await pool.query(studentService.getAllStudents);
+    const result = await studentService.getAllStudents();
     res.status(200).json({
       status: "success",
       message: "Students fetched successfully",
@@ -83,7 +76,13 @@ const getAllStudents = async (req: Request, res: Response) => {
 const getStudentById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await pool.query(studentService.getStudentById, [id]);
+    const result = await studentService.getStudentById(id);
+    if (result.rows.length === 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "Student not found with this id",
+      });
+    }
     res.status(200).json({
       status: "success",
       message: "Students fetched successfully",
@@ -101,14 +100,14 @@ const getStudentById = async (req: Request, res: Response) => {
 const deleteStudentById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const isExists = await pool.query(studentService.getStudentById, [id]);
+    const isExists = await studentService.getStudentById(id);
     if (isExists.rows.length === 0) {
       return res.status(400).json({
         status: "error",
         message: "Student not found with this id",
       });
     }
-    const result = await pool.query(studentService.deleteStudentById, [id]);
+    const result = await studentService.deleteStudentById(id);
     res.status(200).json({
       status: "success",
       message: "Student deleted successfully",
@@ -170,7 +169,7 @@ const deleteStudentById = async (req: Request, res: Response) => {
 //   }
 // };
 
-const updateStudentById = async (req: Request, res: Response) => {
+export const updateStudentById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const fieldsToUpdate = req.body;
@@ -187,7 +186,7 @@ const updateStudentById = async (req: Request, res: Response) => {
       "gender",
     ];
 
-    // Filter fields that are allowed and present in the request
+    // Filter valid fields
     const validFields = Object.keys(fieldsToUpdate).filter((field) =>
       allowedFields.includes(field)
     );
@@ -199,21 +198,21 @@ const updateStudentById = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if the student exists
-    const isExists = await pool.query(studentService.getStudentById, [id]);
+    // Check if student exists
+    const isExists = await studentService.getStudentById(id);
     if (isExists.rows.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: "Student not found with this id",
+        message: "Student not found with this ID",
       });
     }
 
-    // Dynamically generate the update query based on valid fields
+    // Generate dynamic update query
     const updateQuery = studentService.updateStudentById(validFields);
     const values = validFields.map((field) => fieldsToUpdate[field]);
-    values.push(id); // Add the ID for the WHERE clause
+    values.push(id); // Add ID for WHERE clause
 
-    // Perform the update
+    // Execute the update query
     const result = await pool.query(updateQuery, values);
 
     res.status(200).json({
