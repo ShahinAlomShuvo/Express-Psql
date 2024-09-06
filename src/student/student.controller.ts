@@ -4,19 +4,32 @@ import pool from "../server";
 const createStudent = async (req: Request, res: Response) => {
   try {
     const {
-      name,
+      firstName,
+      middleName,
+      lastName,
       email,
-      dob,
+      dateOfBirth,
       fatherName,
+      fatherOccupation,
+      fatherContactNo,
       motherName,
+      motherOccupation,
+      motherContactNo,
       presentAddress,
       permanentAddress,
-      age,
+      localGuardianName,
+      localGuardianOccupation,
+      localGuardianContactNo,
+      localGuardianAddress,
+      contactNo,
+      emergencyContactNo,
+      bloodGroup,
       password,
-      isDeleted,
       gender,
+      profileImg,
     } = req.body;
 
+    // Check if the student already exists by email
     const isExists = await studentService.isExists(email);
     if (isExists.rows.length > 0) {
       return res.status(400).json({
@@ -25,18 +38,31 @@ const createStudent = async (req: Request, res: Response) => {
       });
     }
 
+    // Create the student
     const result = await studentService.createStudent(
-      name,
+      firstName,
+      middleName,
+      lastName,
       email,
-      dob,
+      dateOfBirth,
       fatherName,
+      fatherOccupation,
+      fatherContactNo,
       motherName,
+      motherOccupation,
+      motherContactNo,
       presentAddress,
       permanentAddress,
-      age,
+      localGuardianName,
+      localGuardianOccupation,
+      localGuardianContactNo,
+      localGuardianAddress,
+      contactNo,
+      emergencyContactNo,
+      bloodGroup,
       password,
-      isDeleted,
-      gender
+      gender,
+      profileImg
     );
 
     // Exclude the password from the result
@@ -122,103 +148,39 @@ const deleteStudentById = async (req: Request, res: Response) => {
   }
 };
 
-// const updateStudentById = async (req: Request, res: Response) => {
-//   try {
-//     const { id } = req.params;
-//     const {
-//       name,
-//       email,
-//       dob,
-//       fatherName,
-//       motherName,
-//       presentAddress,
-//       permanentAddress,
-//       age,
-//       gender,
-//     } = req.body;
-//     const isExists = await pool.query(studentService.getStudentById, [id]);
-//     if (isExists.rows.length === 0) {
-//       return res.status(400).json({
-//         status: "error",
-//         message: "Student not found with this id",
-//       });
-//     }
-//     const result = await pool.query(studentService.updateStudentById, [
-//       name,
-//       email,
-//       dob,
-//       fatherName,
-//       motherName,
-//       presentAddress,
-//       permanentAddress,
-//       age,
-//       gender,
-//       id,
-//     ]);
-//     res.status(200).json({
-//       status: "success",
-//       message: "Student updated successfully",
-//       data: result.rows,
-//     });
-//   } catch (error: any) {
-//     res.status(500).json({
-//       status: "error",
-//       message: error.message || "Something went wrong",
-//       error: error,
-//     });
-//   }
-// };
-
-export const updateStudentById = async (req: Request, res: Response) => {
+const updateStudentById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const fieldsToUpdate = req.body;
+    const updates = req.body;
 
-    const allowedFields = [
-      "name",
-      "email",
-      "dob",
-      "fatherName",
-      "motherName",
-      "presentAddress",
-      "permanentAddress",
-      "age",
-      "gender",
-    ];
-
-    // Filter valid fields
-    const validFields = Object.keys(fieldsToUpdate).filter((field) =>
-      allowedFields.includes(field)
-    );
-
-    if (validFields.length === 0) {
+    // Validate ID
+    if (!parseInt(id)) {
       return res.status(400).json({
         status: "error",
-        message: "No valid fields provided for update",
+        message: "Invalid student ID",
       });
     }
 
-    // Check if student exists
-    const isExists = await studentService.getStudentById(id);
-    if (isExists.rows.length === 0) {
+    // Update the student
+    const result = await studentService.updateStudentById(
+      parseInt(id),
+      updates
+    );
+
+    if (result.rowCount === 0) {
       return res.status(404).json({
         status: "error",
-        message: "Student not found with this ID",
+        message: "Student not found",
       });
     }
 
-    // Generate dynamic update query
-    const updateQuery = studentService.updateStudentById(validFields);
-    const values = validFields.map((field) => fieldsToUpdate[field]);
-    values.push(id); // Add ID for WHERE clause
-
-    // Execute the update query
-    const result = await pool.query(updateQuery, values);
+    // Exclude the password from the result
+    const { password: _, ...data } = result.rows[0];
 
     res.status(200).json({
       status: "success",
       message: "Student updated successfully",
-      data: result.rows[0],
+      data: data,
     });
   } catch (error: any) {
     res.status(500).json({
